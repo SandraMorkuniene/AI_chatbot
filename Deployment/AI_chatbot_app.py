@@ -5,6 +5,7 @@ from langchain_community.chat_models import ChatOpenAI
 from langchain.schema import HumanMessage, SystemMessage, AIMessage
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.chains import RetrievalQA
+from langchain.memory import ConversationBufferMemory
 import PyPDF2
 import io
 import csv
@@ -13,7 +14,9 @@ from io import StringIO
 
 # Initialize LLM
 SYSTEM_PROMPT = "You are a helpful and safe AI assistant. You must refuse to engage in harmful, unethical, or biased discussions."
-llm = ChatOpenAI(model="gpt-3.5-turbo")
+llm = ChatOpenAI(model="gpt-3.5-turbo", streaming=True)
+
+memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
 
 def is_input_safe(user_input: str) -> bool:
     """Check if the input is safe to process."""
@@ -99,16 +102,16 @@ if st.session_state.model_confirmed:
         if is_input_safe(query):
             if st.session_state.uploaded_files:
                 retriever = st.session_state.uploaded_files.as_retriever(search_kwargs={"k": 2})
-                qa_chain = RetrievalQA.from_chain_type(llm=llm, retriever=retriever, chain_type="stuff")
+                qa_chain = RetrievalQA.from_chain_type(llm=llm, retriever=retriever, chain_type="stuff", memory=memory)
                 response = qa_chain.run(query)
             else:
-                response = llm([SystemMessage(content=SYSTEM_PROMPT), HumanMessage(content=query)], 
-                               temperature=st.session_state.model_creativity, max_tokens=512).content
+                response = "".join(llm.stream([SystemMessage(content=SYSTEM_PROMPT), HumanMessage(content=query)], 
+                                               temperature=st.session_state.model_creativity, max_tokens=512))
         else:
             response = "⚠️ Your query violates content policies."
         
         st.session_state.conversation_history.append({"role": "assistant", "content": response})
-        st.chat_message("assistant").markdown(response)
+        st.chat_message("assistant").write_stream(response)
 else:
     st.warning("Confirm model settings before asking questions.")
 
@@ -122,4 +125,3 @@ def save_conversation_csv():
 
 st.sidebar.header("💾 Download Conversation")
 st.sidebar.download_button("Download CSV", save_conversation_csv(), "conversation.csv", "text/csv")
-
