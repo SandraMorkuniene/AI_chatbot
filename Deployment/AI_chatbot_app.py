@@ -89,32 +89,35 @@ if st.sidebar.button("Confirm Model Settings"):
     st.session_state.model_confirmed = True
     st.success("Model settings confirmed.")
 
+# Displaying conversation history
 for message in st.session_state.conversation_history:
     st.chat_message(message["role"]).markdown(message["content"])
 
 if st.session_state.model_confirmed:
     query = st.text_input("Ask a question:", value=st.session_state.user_input)
 
-    if query:
-        st.session_state.user_input = ""  # Clear input field
-        st.session_state.conversation_history.append({"role": "user", "content": query})
-        
-        if is_input_safe(query):
-            response_stream = []
-            if st.session_state.uploaded_files:
-                retriever = st.session_state.uploaded_files.as_retriever(search_kwargs={"k": 2})
-                qa_chain = RetrievalQA.from_chain_type(llm=llm, retriever=retriever, chain_type="stuff", memory=memory)
-                response = qa_chain.run(query)
+    # Add a "Send" button for submitting the query
+    if st.button("Send Question"):
+        if query:
+            st.session_state.user_input = ""  # Clear input field
+            st.session_state.conversation_history.append({"role": "user", "content": query})
+
+            if is_input_safe(query):
+                response_stream = []
+                if st.session_state.uploaded_files:
+                    retriever = st.session_state.uploaded_files.as_retriever(search_kwargs={"k": 2})
+                    qa_chain = RetrievalQA.from_chain_type(llm=llm, retriever=retriever, chain_type="stuff", memory=memory)
+                    response = qa_chain.run(query)
+                else:
+                    for chunk in llm.stream([SystemMessage(content=SYSTEM_PROMPT), HumanMessage(content=query)], 
+                                            temperature=st.session_state.model_creativity, max_tokens=512):
+                        response_stream.append(str(chunk))
+                    response = "".join(response_stream)
             else:
-                for chunk in llm.stream([SystemMessage(content=SYSTEM_PROMPT), HumanMessage(content=query)], 
-                                        temperature=st.session_state.model_creativity, max_tokens=512):
-                    response_stream.append(str(chunk))
-                response = "".join(response_stream)
-        else:
-            response = "⚠️ Your query violates content policies."
-        
-        st.session_state.conversation_history.append({"role": "assistant", "content": response})
-        st.chat_message("assistant").write(response)
+                response = "⚠️ Your query violates content policies."
+
+            st.session_state.conversation_history.append({"role": "assistant", "content": response})
+            st.chat_message("assistant").write(response)
 else:
     st.warning("Confirm model settings before asking questions.")
 
