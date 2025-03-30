@@ -113,7 +113,7 @@ if st.session_state.model_confirmed:
                     user_message = HumanMessage(content=query)
                     
                     # Generate a full response
-                    response = llm.generate([system_message, user_message], 
+                    response = llm([system_message, user_message],
                                             temperature=st.session_state.model_creativity, max_tokens=512)
 
                 st.session_state.conversation_history.append({"role": "assistant", "content": response})
