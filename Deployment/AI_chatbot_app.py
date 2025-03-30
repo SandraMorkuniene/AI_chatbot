@@ -108,8 +108,12 @@ if st.session_state.model_confirmed:
                     qa_chain = RetrievalQA.from_chain_type(llm=llm, retriever=retriever, chain_type="stuff", memory=memory)
                     response = qa_chain.run(query)
                 else:
-                    # Generate full response instead of streaming
-                    response = llm.generate([SystemMessage(content=SYSTEM_PROMPT), HumanMessage(content=query)], 
+                    # Correctly format the SYSTEM_PROMPT
+                    system_message = SystemMessage(content=SYSTEM_PROMPT)
+                    user_message = HumanMessage(content=query)
+                    
+                    # Generate a full response
+                    response = llm.generate([system_message, user_message], 
                                             temperature=st.session_state.model_creativity, max_tokens=512)
 
                 st.session_state.conversation_history.append({"role": "assistant", "content": response})
