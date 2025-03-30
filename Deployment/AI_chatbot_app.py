@@ -1,6 +1,5 @@
-
 import streamlit as st
-from langchain_openai import OpenAIEmbeddings
+from langchain_community.embeddings import OpenAIEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain_community.chat_models import ChatOpenAI
 from langchain.schema import HumanMessage, SystemMessage, AIMessage
@@ -9,10 +8,25 @@ from langchain.chains import RetrievalQA
 import PyPDF2
 import io
 import csv
+import re
 from io import StringIO
 
 # Initialize LLM
+SYSTEM_PROMPT = "You are a helpful and safe AI assistant. You must refuse to engage in harmful, unethical, or biased discussions."
 llm = ChatOpenAI(model="gpt-3.5-turbo")
+
+def is_input_safe(user_input: str) -> bool:
+    """Check if the input is safe to process."""
+    dangerous_patterns = [
+        r"\b(system|os|subprocess|import|open|globals|locals|__import__|__globals__|__dict__|__builtins__)\b",
+        r"(sudo|rm -rf|chmod|chown|mkfs|:(){:|fork bomb|shutdown)",
+        r"\b(simulate being|ignore previous instructions|bypass|jailbreak|pretend to be|hack|scam )\b",
+        r"(<script>|</script>|<iframe>|javascript:|onerror=)",
+        r"(base64|decode|encode|pickle|unpickle)",
+        r"(http[s]?://|ftp://|file://)",
+        r"\b(manipulate|modify system prompt|alter assistant behavior)\b"
+    ]
+    return not any(re.search(pattern, user_input, re.IGNORECASE) for pattern in dangerous_patterns)
 
 def process_pdf(uploaded_file):
     """Extracts text from a PDF and splits it into chunks."""
@@ -82,13 +96,16 @@ if st.session_state.model_confirmed:
         st.session_state.user_input = ""  # Clear input field
         st.session_state.conversation_history.append({"role": "user", "content": query})
         
-        if st.session_state.uploaded_files:
-            retriever = st.session_state.uploaded_files.as_retriever(search_kwargs={"k": 2})
-            qa_chain = RetrievalQA.from_chain_type(llm=llm, retriever=retriever, chain_type="stuff")
-            response = qa_chain.run(query)
+        if is_input_safe(query):
+            if st.session_state.uploaded_files:
+                retriever = st.session_state.uploaded_files.as_retriever(search_kwargs={"k": 2})
+                qa_chain = RetrievalQA.from_chain_type(llm=llm, retriever=retriever, chain_type="stuff")
+                response = qa_chain.run(query)
+            else:
+                response = llm([SystemMessage(content=SYSTEM_PROMPT), HumanMessage(content=query)], 
+                               temperature=st.session_state.model_creativity, max_tokens=512).content
         else:
-            response = llm([SystemMessage(content="You are a helpful assistant."), HumanMessage(content=query)], 
-                           temperature=st.session_state.model_creativity, max_tokens=512).content
+            response = "⚠️ Your query violates content policies."
         
         st.session_state.conversation_history.append({"role": "assistant", "content": response})
         st.chat_message("assistant").markdown(response)
