@@ -14,7 +14,7 @@ from io import StringIO
 
 # Initialize LLM
 SYSTEM_PROMPT = "You are a helpful and safe AI assistant. You must refuse to engage in harmful, unethical, or biased discussions."
-llm = ChatOpenAI(model="gpt-3.5-turbo", streaming=True)
+llm = ChatOpenAI(model="gpt-3.5-turbo")
 
 memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
 
@@ -115,10 +115,10 @@ if st.session_state.model_confirmed:
                     # Generate a full response
                     response = llm([system_message, user_message],
                                             temperature=st.session_state.model_creativity, max_tokens=512)
-                    response_content = response['content']
+                    
 
-                st.session_state.conversation_history.append({"role": "assistant", "content": response_content})
-                st.chat_message("assistant").write(response_content)
+                st.session_state.conversation_history.append({"role": "assistant", "content": response})
+                st.chat_message("assistant").write(response)
             else:
                 response = "⚠️ Your query violates content policies."
 
