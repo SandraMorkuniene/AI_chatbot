@@ -1,6 +1,6 @@
 
 import streamlit as st
-from langchain.embeddings import OpenAIEmbeddings
+from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain_community.chat_models import ChatOpenAI
 from langchain.schema import HumanMessage, SystemMessage, AIMessage
