@@ -12,6 +12,9 @@ import csv
 import re
 from io import StringIO
 
+
+st.title("AI Chatbot - Ask Me Anything!")
+
 # Initialize LLM
 SYSTEM_PROMPT = "You are a helpful and safe AI assistant. You must refuse to engage in harmful, unethical, or biased discussions."
 llm = ChatOpenAI(model="gpt-3.5-turbo")
