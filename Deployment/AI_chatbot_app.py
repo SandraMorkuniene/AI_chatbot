@@ -103,17 +103,14 @@ if st.session_state.model_confirmed:
             st.session_state.conversation_history.append({"role": "user", "content": query})
 
             if is_input_safe(query):
-                response_stream = []  # Initialize an empty list to collect response chunks
                 if st.session_state.uploaded_files:
                     retriever = st.session_state.uploaded_files.as_retriever(search_kwargs={"k": 2})
                     qa_chain = RetrievalQA.from_chain_type(llm=llm, retriever=retriever, chain_type="stuff", memory=memory)
                     response = qa_chain.run(query)
                 else:
-                    # Stream response and collect the parts
-                    for chunk in llm.stream([SystemMessage(content=SYSTEM_PROMPT), HumanMessage(content=query)], 
-                                            temperature=st.session_state.model_creativity, max_tokens=512):
-                        response_stream.append(str(chunk))  # Append each chunk
-                    response = "".join(response_stream)  # Combine all chunks into a single response
+                    # Generate full response instead of streaming
+                    response = llm.generate([SystemMessage(content=SYSTEM_PROMPT), HumanMessage(content=query)], 
+                                            temperature=st.session_state.model_creativity, max_tokens=512)
 
                 st.session_state.conversation_history.append({"role": "assistant", "content": response})
                 st.chat_message("assistant").write(response)
