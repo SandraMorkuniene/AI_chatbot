@@ -115,9 +115,10 @@ if st.session_state.model_confirmed:
                     # Generate a full response
                     response = llm([system_message, user_message],
                                             temperature=st.session_state.model_creativity, max_tokens=512)
+                    response_content = response['content']
 
-                st.session_state.conversation_history.append({"role": "assistant", "content": response})
-                st.chat_message("assistant").write(response)
+                st.session_state.conversation_history.append({"role": "assistant", "content": response_content})
+                st.chat_message("assistant").write(response_content)
             else:
                 response = "⚠️ Your query violates content policies."
 
