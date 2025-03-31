@@ -116,7 +116,8 @@ if st.session_state.model_confirmed:
             else:
                 system_message = SystemMessage(content=SYSTEM_PROMPT)
                 user_message = HumanMessage(content=query)
-                response = llm([system_message, user_message], temperature=st.session_state.model_creativity, max_tokens=512)
+                messages = st.session_state.memory.chat_memory.messages
+                response = llm(messages+[system_message, user_message], temperature=st.session_state.model_creativity, max_tokens=512)
 
             st.session_state.memory.chat_memory.add_ai_message(response.content)  # Store response
             st.chat_message("assistant").write(response.content)
