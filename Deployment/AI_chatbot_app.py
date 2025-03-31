@@ -114,12 +114,12 @@ if st.session_state.model_confirmed:
                 response = llm([system_message, user_message], temperature=st.session_state.model_creativity, max_tokens=512)
 
             st.session_state.conversation_history.append({"role": "assistant", "content": response.content})
-            st.chat_message("assistant").write(response)
+            st.chat_message("assistant").write(response.content)
 
         else:
             response = "⚠️ Your query violates content policies."
             st.session_state.conversation_history.append({"role": "assistant", "content": response.content})
-            st.chat_message("assistant").write(response)
+            st.chat_message("assistant").write(response.content)
 
 else:
     st.warning("Confirm model settings before asking questions.")
