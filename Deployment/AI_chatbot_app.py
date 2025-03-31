@@ -95,8 +95,11 @@ if st.sidebar.button("Confirm Model Settings"):
     st.success("Model settings confirmed.")
 
 # Displaying conversation history
-for message in st.session_state.conversation_history:
-    st.chat_message(message["role"]).markdown(message["content"])
+for message in st.session_state.memory.chat_memory.messages:
+    if isinstance(message, HumanMessage):
+        st.chat_message("user").markdown(message.content)
+    elif isinstance(message, AIMessage):
+        st.chat_message("assistant").markdown(message.content)
 
 if st.session_state.model_confirmed:
     
