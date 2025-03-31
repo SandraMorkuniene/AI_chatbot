@@ -97,38 +97,33 @@ for message in st.session_state.conversation_history:
     st.chat_message(message["role"]).markdown(message["content"])
 
 if st.session_state.model_confirmed:
-    query = st.chat_input("Ask a question:", value=st.session_state.user_input)
+    # Use st.chat_input() instead of st.text_input()
+    query = st.chat_input("Ask a question:")
 
-    # Add a "Send" button for submitting the query
-    if st.button("Send Question"):
-        if query:
-            st.session_state.user_input = ""  # Clear input field
-            st.session_state.conversation_history.append({"role": "user", "content": query})
-
-            if is_input_safe(query):
-                if st.session_state.uploaded_files:
-                    retriever = st.session_state.uploaded_files.as_retriever(search_kwargs={"k": 2})
-                    qa_chain = RetrievalQA.from_chain_type(llm=llm, retriever=retriever, chain_type="stuff", memory=memory)
-                    response = qa_chain.run(query)
-                else:
-                    # Correctly format the SYSTEM_PROMPT
-                    system_message = SystemMessage(content=SYSTEM_PROMPT)
-                    user_message = HumanMessage(content=query)
-                    
-                    # Generate a full response
-                    response = llm([system_message, user_message],
-                                            temperature=st.session_state.model_creativity, max_tokens=512)
-                    
-
-                st.session_state.conversation_history.append({"role": "assistant", "content": response})
-                st.chat_message("assistant").write(response)
+    if query:
+        st.session_state.conversation_history.append({"role": "user", "content": query})
+        
+        if is_input_safe(query):
+            if st.session_state.uploaded_files:
+                retriever = st.session_state.uploaded_files.as_retriever(search_kwargs={"k": 2})
+                qa_chain = RetrievalQA.from_chain_type(llm=llm, retriever=retriever, chain_type="stuff", memory=memory)
+                response = qa_chain.run(query)
             else:
-                response = "⚠️ Your query violates content policies."
+                system_message = SystemMessage(content=SYSTEM_PROMPT)
+                user_message = HumanMessage(content=query)
+                response = llm([system_message, user_message], temperature=st.session_state.model_creativity, max_tokens=512)
 
-                st.session_state.conversation_history.append({"role": "assistant", "content": response})
-                st.chat_message("assistant").write(response)
+            st.session_state.conversation_history.append({"role": "assistant", "content": response})
+            st.chat_message("assistant").write(response)
+
+        else:
+            response = "⚠️ Your query violates content policies."
+            st.session_state.conversation_history.append({"role": "assistant", "content": response})
+            st.chat_message("assistant").write(response)
+
 else:
     st.warning("Confirm model settings before asking questions.")
+
 
 def save_conversation_csv():
     output = StringIO()
