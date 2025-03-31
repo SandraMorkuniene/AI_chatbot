@@ -97,7 +97,7 @@ for message in st.session_state.conversation_history:
     st.chat_message(message["role"]).markdown(message["content"])
 
 if st.session_state.model_confirmed:
-    query = st.text_input("Ask a question:", value=st.session_state.user_input)
+    query = st.chat_input("Ask a question:", value=st.session_state.user_input)
 
     # Add a "Send" button for submitting the query
     if st.button("Send Question"):
