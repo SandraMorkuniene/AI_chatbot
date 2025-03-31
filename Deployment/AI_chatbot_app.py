@@ -135,8 +135,14 @@ def save_conversation_csv():
     output = StringIO()
     writer = csv.writer(output)
     writer.writerow(["Role", "Message"])
-    for msg in st.session_state.conversation_history:
-        writer.writerow([msg["role"], msg["content"]])
+
+    # Extract messages from memory
+    for msg in st.session_state.memory.chat_memory.messages:
+        if isinstance(msg, HumanMessage):
+            writer.writerow(["User", msg.content])
+        elif isinstance(msg, AIMessage):
+            writer.writerow(["Assistant", msg.content])
+
     return output.getvalue()
 
 st.sidebar.header("💾 Download Conversation")
