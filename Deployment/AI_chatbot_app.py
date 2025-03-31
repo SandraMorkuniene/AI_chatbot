@@ -115,13 +115,13 @@ if st.session_state.model_confirmed:
                 user_message = HumanMessage(content=query)
                 response = llm([system_message, user_message], temperature=st.session_state.model_creativity, max_tokens=512)
 
-            st.session_state.memory.chat_memory.add_ai_message(response)  # Store response
-            st.chat_message("assistant").write(response)
+            st.session_state.memory.chat_memory.add_ai_message(response.content)  # Store response
+            st.chat_message("assistant").write(response.content)
 
         else:
             response = "⚠️ Your query violates content policies."
-            st.session_state.memory.chat_memory.add_ai_message(response)
-            st.chat_message("assistant").write(response)
+            st.session_state.memory.chat_memory.add_ai_message(response.content)
+            st.chat_message("assistant").write(response.content)
 
 else:
     st.warning("Confirm model settings before asking questions.")
