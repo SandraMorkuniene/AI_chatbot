@@ -19,7 +19,9 @@ st.title("🤖 AI Chatbot - Ask Me Anything!")
 SYSTEM_PROMPT = "You are a helpful and safe AI assistant. You must refuse to engage in harmful, unethical, or biased discussions."
 llm = ChatOpenAI(model="gpt-3.5-turbo")
 
-memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
+if "memory" not in st.session_state:
+    st.session_state.memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
+
 
 def is_input_safe(user_input: str) -> bool:
     """Check if the input is safe to process."""
@@ -101,25 +103,25 @@ if st.session_state.model_confirmed:
     query = st.chat_input("Ask a question:")
 
     if query:
-        st.session_state.conversation_history.append({"role": "user", "content": query})
+        st.session_state.memory.chat_memory.add_user_message(query)
         
         if is_input_safe(query):
             if st.session_state.uploaded_files:
                 retriever = st.session_state.uploaded_files.as_retriever(search_kwargs={"k": 2})
-                qa_chain = RetrievalQA.from_chain_type(llm=llm, retriever=retriever, chain_type="stuff", memory=memory)
+                qa_chain = RetrievalQA.from_chain_type(llm=llm, retriever=retriever, chain_type="stuff", memory=st.session_state.memory)
                 response = qa_chain.run(query)
             else:
                 system_message = SystemMessage(content=SYSTEM_PROMPT)
                 user_message = HumanMessage(content=query)
                 response = llm([system_message, user_message], temperature=st.session_state.model_creativity, max_tokens=512)
 
-            st.session_state.conversation_history.append({"role": "assistant", "content": response.content})
-            st.chat_message("assistant").write(response.content)
+            st.session_state.memory.chat_memory.add_ai_message(response)  # Store response
+            st.chat_message("assistant").write(response)
 
         else:
             response = "⚠️ Your query violates content policies."
-            st.session_state.conversation_history.append({"role": "assistant", "content": response.content})
-            st.chat_message("assistant").write(response.content)
+            st.session_state.memory.chat_memory.add_ai_message(response)
+            st.chat_message("assistant").write(response)
 
 else:
     st.warning("Confirm model settings before asking questions.")
