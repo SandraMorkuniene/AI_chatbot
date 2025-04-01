@@ -107,7 +107,7 @@ if uploaded_files and (st.session_state.uploaded_files is None or len(uploaded_f
         # If there's already an existing FAISS index, append to it
         if st.session_state.uploaded_files:
             current_index = st.session_state.uploaded_files
-            current_docs = current_index.docstore._docs  # Extract existing docs from FAISS
+            current_docs = current_index.index.reconstruct_all()  # Extract existing docs from FAISS
             docs.extend(current_docs)  # Append the old docs to the new ones
         
         # Rebuild FAISS index with updated docs
