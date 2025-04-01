@@ -73,17 +73,28 @@ uploaded_files = st.sidebar.file_uploader("Upload PDFs or TXT files", type=["pdf
 if uploaded_files and (st.session_state.uploaded_files is None or len(uploaded_files) != st.session_state.uploaded_file_count):
     with st.spinner("Processing documents..."):
         docs = []
+        # Process new documents and append them to existing docs
         for f in uploaded_files:
             if f.type == "application/pdf":
                 docs.extend(process_pdf(f))  # Extend with chunks
             else:
                 docs.extend(process_text_file(f))
         
+        # If there's already an existing FAISS index, append to it
+        if st.session_state.uploaded_files:
+            current_index = st.session_state.uploaded_files
+            current_docs = current_index.docstore._docs  # Extract existing docs from FAISS
+            docs.extend(current_docs)  # Append the old docs to the new ones
+        
+        # Rebuild FAISS index with updated docs
         embeddings = OpenAIEmbeddings()
         faiss_index = FAISS.from_texts(docs, embeddings)
+        
+        # Store the new FAISS index
         st.session_state.uploaded_files = faiss_index
         st.session_state.uploaded_file_count = len(uploaded_files)
     st.success(f"Successfully indexed {len(docs)} document chunks.")
+
 
 st.sidebar.header("⚙️ Model Settings")
 st.session_state.model_choice = st.sidebar.selectbox("Choose Model", ["gpt-3.5-turbo", "gpt-4"], index=0)
