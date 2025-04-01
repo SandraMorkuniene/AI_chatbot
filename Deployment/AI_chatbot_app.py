@@ -114,10 +114,18 @@ if st.session_state.model_confirmed:
         
         if is_input_safe(query):
             if st.session_state.uploaded_files:
+                # If the user uploaded files, use the retriever to get results
                 retriever = st.session_state.uploaded_files.as_retriever(search_kwargs={"k": 2})
                 qa_chain = RetrievalQA.from_chain_type(llm=llm, retriever=retriever, chain_type="stuff", memory=st.session_state.memory)
-                response = qa_chain.run(query)  # Returns a string
+                response = qa_chain.run(query)  # This returns a string
+                
+                # Only add response to memory and conversation history if it's a string
+                if isinstance(response, str):
+                    st.session_state.memory.chat_memory.add_ai_message(response)
+                    st.session_state.conversation_history.append({"role": "assistant", "content": response})
+                    st.chat_message("assistant").write(response)
             else:
+                # If no file is uploaded, use the LLM directly
                 system_message = SystemMessage(content=SYSTEM_PROMPT)
                 user_message = HumanMessage(content=query)
                 messages = st.session_state.memory.chat_memory.messages
@@ -125,15 +133,15 @@ if st.session_state.model_confirmed:
                                temperature=st.session_state.model_creativity, 
                                max_tokens=512)  # response is an AIMessage object
 
-            # Handle the response
-            if isinstance(response, str):  # If response is a string
-                st.session_state.memory.chat_memory.add_ai_message(response)
-                st.session_state.conversation_history.append({"role": "assistant", "content": response})
-                st.chat_message("assistant").write(response)
-            else:  # If response is an AIMessage object
-                st.session_state.memory.chat_memory.add_ai_message(response.content)
-                st.session_state.conversation_history.append({"role": "assistant", "content": response.content})
-                st.chat_message("assistant").write(response.content)
+                # Handle the assistant's response
+                if isinstance(response, str):
+                    st.session_state.memory.chat_memory.add_ai_message(response)
+                    st.session_state.conversation_history.append({"role": "assistant", "content": response})
+                    st.chat_message("assistant").write(response)
+                else:
+                    st.session_state.memory.chat_memory.add_ai_message(response.content)
+                    st.session_state.conversation_history.append({"role": "assistant", "content": response.content})
+                    st.chat_message("assistant").write(response.content)
 
         else:
             response = "⚠️ Your query violates content policies."
@@ -143,6 +151,7 @@ if st.session_state.model_confirmed:
 
 else:
     st.warning("Confirm model settings before asking questions.")
+
 
 
 
