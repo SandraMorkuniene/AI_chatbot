@@ -70,6 +70,30 @@ if st.sidebar.button("🆕 Start New Session"):
 st.sidebar.header("📄 Upload Documents")
 uploaded_files = st.sidebar.file_uploader("Upload PDFs or TXT files", type=["pdf", "txt"], accept_multiple_files=True)
 
+# Function to handle document removal
+def remove_document(file_to_remove):
+    """Remove a document and update the FAISS index."""
+    # Get the current files and remove the selected file
+    uploaded_files_list = st.session_state.uploaded_files["files"]
+    uploaded_files_list = [file for file in uploaded_files_list if file.name != file_to_remove.name]
+    
+    # Rebuild the FAISS index with the remaining files
+    docs = []
+    for f in uploaded_files_list:
+        if f.type == "application/pdf":
+            docs.extend(process_pdf(f))  # Process PDF file and add chunks
+        else:
+            docs.extend(process_text_file(f))  # Process TXT file and add chunks
+    
+    # Rebuild the FAISS index with the remaining documents
+    embeddings = OpenAIEmbeddings()
+    faiss_index = FAISS.from_texts(docs, embeddings)
+    
+    # Store the updated FAISS index and files
+    st.session_state.uploaded_files = {"index": faiss_index, "files": uploaded_files_list}
+    st.session_state.uploaded_file_count = len(uploaded_files_list)
+
+
 if uploaded_files and (st.session_state.uploaded_files is None or len(uploaded_files) != st.session_state.uploaded_file_count):
     with st.spinner("Processing documents..."):
         docs = []
@@ -95,6 +119,15 @@ if uploaded_files and (st.session_state.uploaded_files is None or len(uploaded_f
         st.session_state.uploaded_file_count = len(uploaded_files)
     st.success(f"Successfully indexed {len(docs)} document chunks.")
 
+# Display uploaded documents with an option to remove
+if st.session_state.uploaded_files:
+    st.sidebar.write("Uploaded files:")
+    for uploaded_file in st.session_state.uploaded_files["files"]:
+        file_name = uploaded_file.name
+        # Provide a remove button for each document
+        if st.sidebar.button(f"Remove {file_name}"):
+            remove_document(uploaded_file)
+            st.experimental_rerun()  # Re-run the app to reflect the changes
 
 st.sidebar.header("⚙️ Model Settings")
 st.session_state.model_choice = st.sidebar.selectbox("Choose Model", ["gpt-3.5-turbo", "gpt-4"], index=0)
