@@ -106,8 +106,12 @@ if st.session_state.model_confirmed:
     query = st.chat_input("Ask a question:")
 
     if query:
+        # Store user message in memory (this ensures the memory keeps track of user queries)
         st.session_state.memory.chat_memory.add_user_message(query)
-
+        
+        # Append the user message to the conversation history (for display)
+        st.session_state.conversation_history.append({"role": "user", "content": query})
+        
         if is_input_safe(query):
             if st.session_state.uploaded_files:
                 retriever = st.session_state.uploaded_files.as_retriever(search_kwargs={"k": 2})
@@ -119,24 +123,27 @@ if st.session_state.model_confirmed:
                 messages = st.session_state.memory.chat_memory.messages
                 response = llm(messages + [system_message, user_message], 
                                temperature=st.session_state.model_creativity, 
-                               max_tokens=512)  
-                # response is an AIMessage object
+                               max_tokens=512)  # response is an AIMessage object
 
-            # Handle different response types
-            if isinstance(response, str):  # When RetrievalQA returns a string
+            # Handle the response
+            if isinstance(response, str):  # If response is a string
                 st.session_state.memory.chat_memory.add_ai_message(response)
+                st.session_state.conversation_history.append({"role": "assistant", "content": response})
                 st.chat_message("assistant").write(response)
-            else:  # When LLM response is an AIMessage object
+            else:  # If response is an AIMessage object
                 st.session_state.memory.chat_memory.add_ai_message(response.content)
+                st.session_state.conversation_history.append({"role": "assistant", "content": response.content})
                 st.chat_message("assistant").write(response.content)
 
         else:
             response = "⚠️ Your query violates content policies."
             st.session_state.memory.chat_memory.add_ai_message(response)
+            st.session_state.conversation_history.append({"role": "assistant", "content": response})
             st.chat_message("assistant").write(response)
 
 else:
     st.warning("Confirm model settings before asking questions.")
+
 
 
 
