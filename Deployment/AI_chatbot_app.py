@@ -96,7 +96,7 @@ def remove_document(file_to_remove):
     st.session_state.uploaded_documents = uploaded_files_list  # Update the documents list
     st.session_state.uploaded_file_count = len(uploaded_files_list)
 
-
+# If new files are uploaded or the file count has changed
 if uploaded_files and (st.session_state.uploaded_files is None or len(uploaded_files) != st.session_state.uploaded_file_count):
     with st.spinner("Processing documents..."):
         docs = []
@@ -107,6 +107,9 @@ if uploaded_files and (st.session_state.uploaded_files is None or len(uploaded_f
             else:
                 docs.extend(process_text_file(f))  # Process TXT and add chunks
         
+        # Ensure docs contains only strings (check each chunk is a string)
+        docs = [str(doc) for doc in docs]
+
         # If there's an existing FAISS index, append new documents to it
         if st.session_state.uploaded_files:
             # Get existing documents stored in session state
@@ -123,7 +126,6 @@ if uploaded_files and (st.session_state.uploaded_files is None or len(uploaded_f
         st.session_state.uploaded_file_count = len(uploaded_files)
 
     st.success(f"Successfully indexed {len(docs)} document chunks.")
-
             
 st.sidebar.header("⚙️ Model Settings")
 st.session_state.model_choice = st.sidebar.selectbox("Choose Model", ["gpt-3.5-turbo", "gpt-4"], index=0)
