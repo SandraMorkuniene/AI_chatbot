@@ -106,26 +106,32 @@ if st.session_state.model_confirmed:
     query = st.chat_input("Ask a question:")
 
     if query:
-        st.session_state.memory.chat_memory.add_user_message(query)
-        
-        if is_input_safe(query):
-            if st.session_state.uploaded_files:
-                retriever = st.session_state.uploaded_files.as_retriever(search_kwargs={"k": 2})
-                qa_chain = RetrievalQA.from_chain_type(llm=llm, retriever=retriever, chain_type="stuff", memory=st.session_state.memory)
-                response = qa_chain.run(query)
-            else:
-                system_message = SystemMessage(content=SYSTEM_PROMPT)
-                user_message = HumanMessage(content=query)
-                messages = st.session_state.memory.chat_memory.messages
-                response = llm(messages+[system_message, user_message], temperature=st.session_state.model_creativity, max_tokens=512)
+    st.session_state.memory.chat_memory.add_user_message(query)
 
-            st.session_state.memory.chat_memory.add_ai_message(response.content)  # Store response
-            st.chat_message("assistant").write(response.content)
-
+    if is_input_safe(query):
+        if st.session_state.uploaded_files:
+            retriever = st.session_state.uploaded_files.as_retriever(search_kwargs={"k": 2})
+            qa_chain = RetrievalQA.from_chain_type(llm=llm, retriever=retriever, chain_type="stuff", memory=st.session_state.memory)
+            response = qa_chain.run(query)  # Returns a string
         else:
-            response = "⚠️ Your query violates content policies."
+            system_message = SystemMessage(content=SYSTEM_PROMPT)
+            user_message = HumanMessage(content=query)
+            messages = st.session_state.memory.chat_memory.messages
+            response = llm(messages + [system_message, user_message], temperature=st.session_state.model_creativity, max_tokens=512)  
+            # response is an AIMessage object
+
+        # Diff scenarios
+        if isinstance(response, str):  # When RetrievalQA returns a string
+            st.session_state.memory.chat_memory.add_ai_message(response)
+            st.chat_message("assistant").write(response)
+        else:  # When LLM response is an AIMessage object
             st.session_state.memory.chat_memory.add_ai_message(response.content)
             st.chat_message("assistant").write(response.content)
+
+    else:
+        response = "⚠️ Your query violates content policies."
+        st.session_state.memory.chat_memory.add_ai_message(response)
+        st.chat_message("assistant").write(response)
 
 else:
     st.warning("Confirm model settings before asking questions.")
