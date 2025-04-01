@@ -124,15 +124,6 @@ if uploaded_files and (st.session_state.uploaded_files is None or len(uploaded_f
 
     st.success(f"Successfully indexed {len(docs)} document chunks.")
 
-# Display uploaded documents with an option to remove
-if st.session_state.uploaded_files:
-    st.sidebar.write("Uploaded files:")
-    for uploaded_file in st.session_state.uploaded_documents:
-        file_name = uploaded_file.name
-        # Provide a remove button for each document
-        if st.sidebar.button(f"Remove {file_name}"):
-            remove_document(uploaded_file)
-            st.rerun()  # Re-run the app to reflect the changes
             
 st.sidebar.header("⚙️ Model Settings")
 st.session_state.model_choice = st.sidebar.selectbox("Choose Model", ["gpt-3.5-turbo", "gpt-4"], index=0)
