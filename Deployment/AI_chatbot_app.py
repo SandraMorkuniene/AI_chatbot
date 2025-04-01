@@ -56,6 +56,8 @@ if "conversation_history" not in st.session_state:
     st.session_state.conversation_history = []
 if "uploaded_files" not in st.session_state:
     st.session_state.uploaded_files = None
+if "uploaded_documents" not in st.session_state:
+    st.session_state.uploaded_documents = []  # Store documents separately    
 if "uploaded_file_count" not in st.session_state:
     st.session_state.uploaded_file_count = 0
 if "model_confirmed" not in st.session_state:
@@ -74,7 +76,7 @@ uploaded_files = st.sidebar.file_uploader("Upload PDFs or TXT files", type=["pdf
 def remove_document(file_to_remove):
     """Remove a document and update the FAISS index."""
     # Get the current files and remove the selected file
-    uploaded_files_list = st.session_state.uploaded_files["files"]
+    uploaded_files_list = st.session_state.uploaded_documents
     uploaded_files_list = [file for file in uploaded_files_list if file.name != file_to_remove.name]
     
     # Rebuild the FAISS index with the remaining files
@@ -90,45 +92,48 @@ def remove_document(file_to_remove):
     faiss_index = FAISS.from_texts(docs, embeddings)
     
     # Store the updated FAISS index and files
-    st.session_state.uploaded_files = {"index": faiss_index, "files": uploaded_files_list}
+    st.session_state.uploaded_files = faiss_index
+    st.session_state.uploaded_documents = uploaded_files_list  # Update the documents list
     st.session_state.uploaded_file_count = len(uploaded_files_list)
 
 
 if uploaded_files and (st.session_state.uploaded_files is None or len(uploaded_files) != st.session_state.uploaded_file_count):
     with st.spinner("Processing documents..."):
         docs = []
-        # Process new documents and append them to existing docs
+        # Process new documents and append them to the existing docs list
         for f in uploaded_files:
             if f.type == "application/pdf":
-                docs.extend(process_pdf(f))  # Extend with chunks
+                docs.extend(process_pdf(f))  # Process PDF and add chunks
             else:
-                docs.extend(process_text_file(f))
+                docs.extend(process_text_file(f))  # Process TXT and add chunks
         
-        # If there's already an existing FAISS index, append to it
+        # If there's an existing FAISS index, append new documents to it
         if st.session_state.uploaded_files:
-            current_index = st.session_state.uploaded_files
-            current_docs = current_index.index.reconstruct_all()  # Extract existing docs from FAISS
-            docs.extend(current_docs)  # Append the old docs to the new ones
+            # Get existing documents stored in session state
+            existing_docs = st.session_state.uploaded_documents
+            docs.extend(existing_docs)  # Append old docs to the new ones
         
-        # Rebuild FAISS index with updated docs
+        # Rebuild FAISS index with the updated list of documents
         embeddings = OpenAIEmbeddings()
         faiss_index = FAISS.from_texts(docs, embeddings)
         
-        # Store the new FAISS index
+        # Store the new FAISS index and documents
         st.session_state.uploaded_files = faiss_index
+        st.session_state.uploaded_documents = uploaded_files  # Store the document files in session state
         st.session_state.uploaded_file_count = len(uploaded_files)
+
     st.success(f"Successfully indexed {len(docs)} document chunks.")
 
 # Display uploaded documents with an option to remove
 if st.session_state.uploaded_files:
     st.sidebar.write("Uploaded files:")
-    for uploaded_file in st.session_state.uploaded_files["files"]:
+    for uploaded_file in st.session_state.uploaded_documents:
         file_name = uploaded_file.name
         # Provide a remove button for each document
         if st.sidebar.button(f"Remove {file_name}"):
             remove_document(uploaded_file)
-            st.experimental_rerun()  # Re-run the app to reflect the changes
-
+            st.rerun()  # Re-run the app to reflect the changes
+            
 st.sidebar.header("⚙️ Model Settings")
 st.session_state.model_choice = st.sidebar.selectbox("Choose Model", ["gpt-3.5-turbo", "gpt-4"], index=0)
 st.session_state.model_creativity = st.sidebar.slider("Model Creativity (Temperature)", 0.0, 1.0, 0.7, 0.1)
