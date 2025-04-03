@@ -155,59 +155,55 @@ if st.session_state.model_confirmed:
         # Append the user message to the conversation history (for display)
         st.session_state.conversation_history.append({"role": "user", "content": query})
         
-    if is_input_safe(query):
-    if st.session_state.uploaded_files:
-        # Use the retriever to get results
-        retriever = st.session_state.uploaded_files.as_retriever(search_kwargs={"k": 2})
-        qa_chain = ConversationalRetrievalChain.from_llm(
-            llm=llm,
-            retriever=retriever,
-            memory=st.session_state.memory
-        )
-        response = qa_chain.run(query)  # This returns a string
+        if is_input_safe(query):
+            if st.session_state.uploaded_files:
+
+                retriever = st.session_state.uploaded_files.as_retriever(search_kwargs={"k": 2})
+                qa_chain = ConversationalRetrievalChain.from_llm(llm=llm,retriever=retriever,memory=st.session_state.memory)
+                response = qa_chain.run(query)  # This returns a string
         
-        if isinstance(response, str):
+                if isinstance(response, str):
             # Prevent duplicate responses in conversation history
-            if not st.session_state.conversation_history or st.session_state.conversation_history[-1]["content"] != response:
+                if not st.session_state.conversation_history or st.session_state.conversation_history[-1]["content"] != response:
                 st.session_state.conversation_history.append({"role": "assistant", "content": response})
             
-            st.chat_message("assistant").write(response)  # Display response in chat
-
-    else:
-        # If no file is uploaded, use the LLM directly
-        system_message = SystemMessage(content=SYSTEM_PROMPT)
-        user_message = HumanMessage(content=query)
-        messages = st.session_state.memory.chat_memory.messages
-        response = llm(messages + [system_message, user_message], 
-                       temperature=st.session_state.model_creativity, 
-                       max_tokens=int(st.session_state.response_length_words * 1.5))  # response is an AIMessage object
-
-        # Handle the assistant's response
-        if isinstance(response, str):
-            st.session_state.memory.chat_memory.add_ai_message(response)
-
-            # Prevent duplicate responses in conversation history
-            if not st.session_state.conversation_history or st.session_state.conversation_history[-1]["content"] != response:
-                st.session_state.conversation_history.append({"role": "assistant", "content": response})
-
-            st.chat_message("assistant").write(response)  # Display response in chat
+                st.chat_message("assistant").write(response)  # Display response in chat
 
         else:
-            st.session_state.memory.chat_memory.add_ai_message(response.content)
+            # If no file is uploaded, use the LLM directly
+            system_message = SystemMessage(content=SYSTEM_PROMPT)
+            user_message = HumanMessage(content=query)
+            messages = st.session_state.memory.chat_memory.messages
+            response = llm(messages + [system_message, user_message], 
+                           temperature=st.session_state.model_creativity, 
+                           max_tokens=int(st.session_state.response_length_words * 1.5))  # response is an AIMessage object
 
-            if not st.session_state.conversation_history or st.session_state.conversation_history[-1]["content"] != response.content:
-                st.session_state.conversation_history.append({"role": "assistant", "content": response.content})
+        # Handle the assistant's response
+            if isinstance(response, str):
+                st.session_state.memory.chat_memory.add_ai_message(response)
 
-            st.chat_message("assistant").write(response.content)  # Display response in chat
+                # Prevent duplicate responses in conversation history
+                if not st.session_state.conversation_history or st.session_state.conversation_history[-1]["content"] != response:
+                    st.session_state.conversation_history.append({"role": "assistant", "content": response})
 
-else:
-    response = "⚠️ Your query violates content policies."
-    st.session_state.memory.chat_memory.add_ai_message(response)
+                    st.chat_message("assistant").write(response)  # Display response in chat
 
-    if not st.session_state.conversation_history or st.session_state.conversation_history[-1]["content"] != response:
-        st.session_state.conversation_history.append({"role": "assistant", "content": response})
+            else:
+                st.session_state.memory.chat_memory.add_ai_message(response.content)
 
-    st.chat_message("assistant").write(response)  # Display warning in chat
+                if not st.session_state.conversation_history or st.session_state.conversation_history[-1]["content"] != response.content:
+                    st.session_state.conversation_history.append({"role": "assistant", "content": response.content})
+
+                st.chat_message("assistant").write(response.content)  # Display response in chat
+
+        else:
+            response = "⚠️ Your query violates content policies."
+            st.session_state.memory.chat_memory.add_ai_message(response)
+        
+            if not st.session_state.conversation_history or st.session_state.conversation_history[-1]["content"] != response:
+                st.session_state.conversation_history.append({"role": "assistant", "content": response})
+        
+            st.chat_message("assistant").write(response)  # Display warning in chat
 
 
 else:
