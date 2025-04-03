@@ -155,7 +155,7 @@ if st.session_state.model_confirmed:
         # Append the user message to the conversation history (for display)
         st.session_state.conversation_history.append({"role": "user", "content": query})
         
-        if is_input_safe(query):
+    if is_input_safe(query):
     if st.session_state.uploaded_files:
         # Use the retriever to get results
         retriever = st.session_state.uploaded_files.as_retriever(search_kwargs={"k": 2})
