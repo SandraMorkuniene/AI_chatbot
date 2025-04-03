@@ -164,7 +164,7 @@ if st.session_state.model_confirmed:
 
                 # Retrieve past messages to ensure continuity
                 messages = st.session_state.memory.buffer if hasattr(st.session_state.memory, "buffer") else []
-                response = qa_chain.run(query)  
+                response = qa_chain.run({"question": query, "chat_history": messages})
 
                 if isinstance(response, str):
                     # Avoid duplicating assistant responses
