@@ -166,12 +166,6 @@ if st.session_state.model_confirmed:
                 messages = st.session_state.memory.buffer if hasattr(st.session_state.memory, "buffer") else []
                 response = qa_chain.run({"question": query, "chat_history": messages})
 
-                if isinstance(response, str):
-                    # Avoid duplicating assistant responses
-                    if not st.session_state.conversation_history or st.session_state.conversation_history[-1]["content"] != response:
-                        st.session_state.conversation_history.append({"role": "assistant", "content": response})
-
-                    st.chat_message("assistant").write(response)  # Display response in chat
 
             else:
                 # If no file is uploaded, use the LLM directly
