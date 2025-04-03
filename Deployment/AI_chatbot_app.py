@@ -171,7 +171,7 @@ if st.session_state.model_confirmed:
                     if not st.session_state.conversation_history or st.session_state.conversation_history[-1]["content"] != response:
                         st.session_state.conversation_history.append({"role": "assistant", "content": response})
 
-                    #st.chat_message("assistant").write(response)  # Display response in chat
+                    st.chat_message("assistant").write(response)  # Display response in chat
 
             else:
                 # If no file is uploaded, use the LLM directly
