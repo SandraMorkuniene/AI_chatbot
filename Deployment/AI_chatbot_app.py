@@ -164,9 +164,12 @@ if st.session_state.model_confirmed:
 
                 # Retrieve past messages to ensure continuity
                 messages = st.session_state.memory.buffer if hasattr(st.session_state.memory, "buffer") else []
+                formatted_messages = "\n".join([msg.content for msg in messages]) if messages else ""
+                input_query = f"{formatted_messages}\nUser: {query}" if formatted_messages else query
+                response = qa_chain.run(input_query)
                 
                 # Run the query
-                response = qa_chain.run(messages + [query])  
+                #response = qa_chain.run(query)  
 
                 if isinstance(response, str):
                     # Avoid duplicating assistant responses
