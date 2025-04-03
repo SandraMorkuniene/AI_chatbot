@@ -163,8 +163,15 @@ if st.session_state.model_confirmed:
                 )
 
                 # Retrieve past messages to ensure continuity
-                messages = st.session_state.memory.buffer if hasattr(st.session_state.memory, "buffer") else []
-                response = qa_chain.run({"question": query, "chat_history": messages})
+                messages = st.session_state.memory.chat_memory.messages if hasattr(st.session_state.memory, "chat_memory") else []
+                response = qa_chain.run(query)
+                if isinstance(response, str):
+                    st.session_state.memory.chat_memory.add_ai_message(response)
+
+                    if not st.session_state.conversation_history or st.session_state.conversation_history[-1]["content"] != response:
+                        st.session_state.conversation_history.append({"role": "assistant", "content": response})
+
+                    st.chat_message("assistant").write(response)  # Display response in chat
 
 
             else:
