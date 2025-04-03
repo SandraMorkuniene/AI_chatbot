@@ -149,11 +149,9 @@ if st.session_state.model_confirmed:
     query = st.chat_input("Ask a question:")
 
     if query:
-        # Store user message in memory (this ensures the memory keeps track of user queries)
-        st.session_state.memory.chat_memory.add_user_message(query)
-        
-        # Append the user message to the conversation history (for display)
-        st.session_state.conversation_history.append({"role": "user", "content": query})
+        if not st.session_state.conversation_history or st.session_state.conversation_history[-1]["content"] != query:
+            st.session_state.memory.chat_memory.add_user_message(query)
+            st.session_state.conversation_history.append({"role": "user", "content": query})
         
         if is_input_safe(query):
             if st.session_state.uploaded_files:
