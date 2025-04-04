@@ -18,7 +18,11 @@ st.title("🤖 AI Chatbot - Ask Me Anything!")
 
 # Initialize LLM
 SYSTEM_PROMPT = "You are a helpful and safe AI assistant. You must refuse to engage in harmful, unethical, or biased discussions."
-llm = ChatOpenAI(model="gpt-3.5-turbo")
+llm = ChatOpenAI(
+    model=st.session_state.model_choice,
+    temperature=st.session_state.model_creativity,
+    max_tokens=int(st.session_state.response_length_words * 1.5)
+))
 
 if "memory" not in st.session_state:
     st.session_state.memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
