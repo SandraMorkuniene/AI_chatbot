@@ -197,7 +197,7 @@ if st.session_state.model_confirmed:
             st.chat_message("assistant").write(warning)
 
 else:
-    st.warning("Confirm model settings before asking questions.")
+    st.warning("Lock the mode and confirm model settings before asking questions.")
 
 # Function to save conversation as CSV
 def save_conversation_csv():
