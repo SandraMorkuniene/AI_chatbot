@@ -46,8 +46,6 @@ if st.sidebar.button("Confirm Model Settings"):
 # Ensure mode and model are confirmed before chatting
 if st.session_state.chat_mode == "Chat without documents" and not st.session_state.mode_locked:
     st.warning("You need to lock in the mode before chatting.")
-
-
 	
 # Initialize LLM
 SYSTEM_PROMPT = "You are a helpful and safe AI assistant. You must refuse to engage in harmful, unethical, or biased discussions."
@@ -108,7 +106,7 @@ if st.sidebar.button("🆕 Start New Session"):
         del st.session_state[key]
     st.rerun()
 
-# Function to handle document removal
+# Handling document removal
 def remove_document(file_to_remove):
     """Remove a document and update the FAISS index."""
     uploaded_files_list = [file for file in st.session_state.uploaded_documents if file.name != file_to_remove.name]
@@ -142,7 +140,7 @@ else:
     uploaded_files = None  # Prevent uploads in chat-only mode
 
 
-# --- Detect file changes and update memory + FAISS ---
+# Detect file changes and update memory + FAISS
 def file_key(file):
     return (file.name, file.size)
 
