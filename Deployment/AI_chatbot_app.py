@@ -47,8 +47,7 @@ if st.sidebar.button("Confirm Model Settings"):
 if st.session_state.chat_mode == "Chat without documents" and not st.session_state.mode_locked:
     st.warning("You need to lock in the mode before chatting.")
 
-elif not st.session_state.model_confirmed:
-    st.warning("Please confirm the model settings before chatting.")	
+
 	
 # Initialize LLM
 SYSTEM_PROMPT = "You are a helpful and safe AI assistant. You must refuse to engage in harmful, unethical, or biased discussions."
