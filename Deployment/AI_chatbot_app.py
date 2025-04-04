@@ -86,12 +86,7 @@ if "model_confirmed" not in st.session_state:
 if "user_input" not in st.session_state:
     st.session_state.user_input = ""
 
-if st.sidebar.button("🆕 Start New Session"):
-    st.session_state.clear()
-    st.rerun()
 
-st.sidebar.header("📄 Upload Documents")
-uploaded_files = st.sidebar.file_uploader("Upload PDFs or TXT files", type=["pdf", "txt"], accept_multiple_files=True)
 
 # Function to handle document removal
 def remove_document(file_to_remove):
