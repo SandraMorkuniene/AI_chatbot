@@ -22,7 +22,7 @@ llm = ChatOpenAI(
     model=st.session_state.model_choice,
     temperature=st.session_state.model_creativity,
     max_tokens=int(st.session_state.response_length_words * 1.5)
-))
+)
 
 if "memory" not in st.session_state:
     st.session_state.memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
