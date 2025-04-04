@@ -16,10 +16,6 @@ from io import StringIO
 
 st.title("🤖 AI Chatbot - Ask Me Anything!")
 	
-if st.sidebar.button("🆕 Start New Session"):
-    st.session_state.clear()
-    st.rerun()
-
 st.sidebar.header("📄 Upload Documents")
 uploaded_files = st.sidebar.file_uploader("Upload PDFs or TXT files", type=["pdf", "txt"], accept_multiple_files=True)
 
@@ -31,7 +27,11 @@ st.session_state.response_length_words = st.sidebar.slider("Response Length (Wor
 if st.sidebar.button("Confirm Model Settings"):
     st.session_state.model_confirmed = True
     st.success("Model settings confirmed.")
-    
+	
+if st.sidebar.button("🆕 Start New Session"):
+    st.session_state.clear()
+    st.rerun()
+	
 # Initialize LLM
 SYSTEM_PROMPT = "You are a helpful and safe AI assistant. You must refuse to engage in harmful, unethical, or biased discussions."
 llm = ChatOpenAI(
