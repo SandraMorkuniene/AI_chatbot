@@ -173,14 +173,13 @@ if st.session_state.mode_locked and st.session_state.model_confirmed:
     if query:
         if is_input_safe(query):
             if st.session_state.uploaded_files:
-                retriever = st.session_state.uploaded_files.as_retriever(search_kwargs={"k": 2})
-                
-                qa_chain = ConversationalRetrievalChain.from_llm(
-                    llm=llm, retriever=retriever, memory=st.session_state.memory.chat_memory
-                )
-                response = qa_chain.run(query)
-		st.session_state.memory.chat_memory.add_ai_message(response)
-		st.chat_message("assistant").write(response)
+		    retriever = st.session_state.uploaded_files.as_retriever(search_kwargs={"k": 2})
+		    qa_chain = ConversationalRetrievalChain.from_llm(llm=llm, retriever=retriever, memory=st.session_state.memory.chat_memory)
+		    response = qa_chain.run(query)
+		    st.session_state.memory.chat_memory.add_ai_message(response)
+		    st.chat_message("assistant").write(response)
+		    
+
 
             else:
                 system_message = SystemMessage(content=SYSTEM_PROMPT)
