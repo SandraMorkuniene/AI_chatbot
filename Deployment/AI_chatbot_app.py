@@ -178,7 +178,8 @@ if st.session_state.mode_locked and st.session_state.model_confirmed:
                     llm=llm, retriever=retriever, memory=st.session_state.memory
                 )
                 response = qa_chain.run(query)
-                st.session_state.memory.chat_memory.add_ai_message(response)
+                if not any(msg.content == response for msg in st.session_state.memory.chat_memory.messages):
+                    st.session_state.memory.chat_memory.add_ai_message(response)
                 st.chat_message("assistant").write(response)
             else:
                 system_message = SystemMessage(content=SYSTEM_PROMPT)
