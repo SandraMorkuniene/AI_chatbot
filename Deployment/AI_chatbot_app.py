@@ -17,8 +17,8 @@ from io import StringIO
 st.title("🤖 AI Chatbot - Ask Me Anything!")
 	
 if st.sidebar.button("🆕 Start New Session"):
-	    st.session_state.clear()
-	    st.rerun()
+	st.session_state.clear()
+	st.rerun()
 	
 st.sidebar.header("📄 Upload Documents")
 uploaded_files = st.sidebar.file_uploader("Upload PDFs or TXT files", type=["pdf", "txt"], accept_multiple_files=True)
