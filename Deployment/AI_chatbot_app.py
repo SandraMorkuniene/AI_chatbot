@@ -16,17 +16,6 @@ from io import StringIO
 
 st.title("🤖 AI Chatbot - Ask Me Anything!")
 	
-if st.sidebar.button("🆕 Start New Session", key="reset_session_btn"):
-    keys_to_clear = [
-        "memory", "conversation_history", "uploaded_files",
-        "uploaded_documents", "uploaded_file_count",
-        "model_choice", "model_creativity", "response_length_words",
-        "model_confirmed", "user_input"
-    ]
-    for key in keys_to_clear:
-        st.session_state.pop(key, None)
-    st.rerun()
-
 st.sidebar.header("📄 Upload Documents")
 uploaded_files = st.sidebar.file_uploader(
     "Upload PDFs or TXT files", type=["pdf", "txt"],
@@ -34,17 +23,11 @@ uploaded_files = st.sidebar.file_uploader(
 )
 
 st.sidebar.header("⚙️ Model Settings")
-st.session_state.model_choice = st.sidebar.selectbox(
-    "Choose Model", ["gpt-3.5-turbo", "gpt-4"], index=0, key="model_choice"
-)
-st.session_state.model_creativity = st.sidebar.slider(
-    "Model Creativity (Temperature)", 0.0, 1.0, 0.7, 0.1, key="model_creativity"
-)
-st.session_state.response_length_words = st.sidebar.slider(
-    "Response Length (Words)", 50, 500, 150, 10, key="response_length_words"
-)
+st.session_state.model_choice = st.sidebar.selectbox("Choose Model", ["gpt-3.5-turbo", "gpt-4"], index=0)
+st.session_state.model_creativity = st.sidebar.slider("Model Creativity (Temperature)", 0.0, 1.0, 0.7, 0.1)
+st.session_state.response_length_words = st.sidebar.slider("Response Length (Words)", 50, 500, 150, 10)
 
-if st.sidebar.button("Confirm Model Settings", key="model_confirmed"):
+if st.sidebar.button("Confirm Model Settings"):
     st.session_state.model_confirmed = True
     st.success("Model settings confirmed.")
 	
@@ -101,7 +84,10 @@ if "model_confirmed" not in st.session_state:
     st.session_state.model_confirmed = False
 if "user_input" not in st.session_state:
     st.session_state.user_input = ""
-
+	
+if st.sidebar.button("🆕 Start New Session"):
+    st.session_state.clear()
+    st.rerun()
 
 
 # Function to handle document removal
