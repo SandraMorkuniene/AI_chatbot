@@ -153,11 +153,6 @@ if st.session_state.model_confirmed:
     query = st.chat_input("Ask a question:")
 
     if query:
-        # Store user message only if it's not already the last message
-        if not st.session_state.conversation_history or st.session_state.conversation_history[-1]["content"] != query:
-            st.session_state.memory.chat_memory.add_user_message(query)
-            st.session_state.conversation_history.append({"role": "user", "content": query})
-        
         if is_input_safe(query):
             if st.session_state.uploaded_files:
                 retriever = st.session_state.uploaded_files.as_retriever(search_kwargs={"k": 2})
@@ -165,18 +160,8 @@ if st.session_state.model_confirmed:
                 qa_chain = ConversationalRetrievalChain.from_llm(
                     llm=llm, retriever=retriever, memory=st.session_state.memory
                 )
-
-                # Retrieve past messages to ensure continuity
-                messages = st.session_state.memory.chat_memory.messages if hasattr(st.session_state.memory, "chat_memory") else []
                 response = qa_chain.run(query)
-                if isinstance(response, str):
-                    st.session_state.memory.chat_memory.add_ai_message(response)
-
-                    if not st.session_state.conversation_history or st.session_state.conversation_history[-1]["content"] != response:
-                        st.session_state.conversation_history.append({"role": "assistant", "content": response})
-
-                    st.chat_message("assistant").write(response)  # Display response in chat
-
+                st.chat_message("assistant").write(response)
 
             else:
                 # If no file is uploaded, use the LLM directly
@@ -186,37 +171,15 @@ if st.session_state.model_confirmed:
                 # Retrieve full past conversation
                 messages = st.session_state.memory.chat_memory.messages
                 
-                response = llm(
-                    messages + [system_message, user_message], 
-                    temperature=st.session_state.model_creativity, 
-                    max_tokens=int(st.session_state.response_length_words * 1.5)
-                )  # response is an AIMessage object
-
-                # Store and display assistant response
-                if isinstance(response, str):
-                    st.session_state.memory.chat_memory.add_ai_message(response)
-
-                    if not st.session_state.conversation_history or st.session_state.conversation_history[-1]["content"] != response:
-                        st.session_state.conversation_history.append({"role": "assistant", "content": response})
-
-                    st.chat_message("assistant").write(response)  # Display response in chat
-
-                else:
-                    st.session_state.memory.chat_memory.add_ai_message(response.content)
-
-                    if not st.session_state.conversation_history or st.session_state.conversation_history[-1]["content"] != response.content:
-                        st.session_state.conversation_history.append({"role": "assistant", "content": response.content})
-
-                    st.chat_message("assistant").write(response.content)  # Display response in chat
+                response = llm.invoke(
+                    messages + [system_message, user_message]) 
+                st.session_state.memory.chat_memory.add_ai_message(response.content)
+                st.chat_message("assistant").write(response.content)
 
         else:
-            response = "⚠️ Your query violates content policies."
-            st.session_state.memory.chat_memory.add_ai_message(response)
-        
-            if not st.session_state.conversation_history or st.session_state.conversation_history[-1]["content"] != response:
-                st.session_state.conversation_history.append({"role": "assistant", "content": response})
-        
-            st.chat_message("assistant").write(response)  # Display warning in chat
+            warning = "⚠️ Your query violates content policies."
+            st.session_state.memory.chat_memory.add_ai_message(warning)
+            st.chat_message("assistant").write(warning)
 
 else:
     st.warning("Confirm model settings before asking questions.")
