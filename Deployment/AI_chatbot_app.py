@@ -14,12 +14,16 @@ import re
 from io import StringIO
 
 
-if st.sidebar.button("🆕 Start New Session"):
-    # Clear all session state and rerun fresh
-    for key in st.session_state.keys():
-        del st.session_state[key]
-    st.rerun()  # Restart the app
-
+if st.sidebar.button("🆕 Start New Session", key="reset_button"):
+    keys_to_clear = [
+        "memory", "conversation_history", "uploaded_files",
+        "uploaded_documents", "uploaded_file_count",
+        "model_choice", "model_creativity", "response_length_words",
+        "model_confirmed", "user_input"
+    ]
+    for key in keys_to_clear:
+        st.session_state.pop(key, None)
+    st.rerun()
 # Upload
 st.sidebar.header("📄 Upload Documents")
 uploaded_files = st.sidebar.file_uploader("Upload PDFs or TXT files", type=["pdf", "txt"], accept_multiple_files=True)
