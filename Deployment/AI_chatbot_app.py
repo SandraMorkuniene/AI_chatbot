@@ -4,7 +4,6 @@ from langchain_community.vectorstores import FAISS
 from langchain_community.chat_models import ChatOpenAI
 from langchain.schema import HumanMessage, SystemMessage, AIMessage
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.chains import RetrievalQA
 from langchain.chains import ConversationalRetrievalChain
 from langchain.memory import ConversationBufferMemory
 import PyPDF2
@@ -13,15 +12,26 @@ import csv
 import re
 from io import StringIO
 
+# Lock in mode choice
+if "mode_locked" not in st.session_state:
+    st.session_state.mode_locked = False
+if "chat_mode" not in st.session_state:
+    st.session_state.chat_mode = None
 
+if not st.session_state.mode_locked:
+    st.sidebar.header("🧭 Choose Interaction Mode")
+    mode_choice = st.sidebar.radio("Select mode for this session:", ["Chat without documents", "Chat with uploaded documents"])
+
+    if st.sidebar.button("🔒 Lock In Mode"):
+        st.session_state.chat_mode = mode_choice
+        st.session_state.mode_locked = True
+        st.rerun()
+else:
+    st.sidebar.success(f"Mode: {st.session_state.chat_mode} (locked)")
+
+# Initialize model settings
 st.title("🤖 AI Chatbot - Ask Me Anything!")
 	
-st.sidebar.header("📄 Upload Documents")
-uploaded_files = st.sidebar.file_uploader(
-    "Upload PDFs or TXT files", type=["pdf", "txt"],
-    accept_multiple_files=True, key="file_uploader"
-)
-
 st.sidebar.header("⚙️ Model Settings")
 st.session_state.model_choice = st.sidebar.selectbox("Choose Model", ["gpt-3.5-turbo", "gpt-4"], index=0)
 st.session_state.model_creativity = st.sidebar.slider("Model Creativity (Temperature)", 0.0, 1.0, 0.7, 0.1)
@@ -41,7 +51,6 @@ llm = ChatOpenAI(
 
 if "memory" not in st.session_state:
     st.session_state.memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
-
 
 def is_input_safe(user_input: str) -> bool:
     """Check if the input is safe to process."""
@@ -86,18 +95,16 @@ if "user_input" not in st.session_state:
     st.session_state.user_input = ""
 	
 if st.sidebar.button("🆕 Start New Session"):
-    st.session_state.clear()
+    for key in st.session_state.keys():
+        del st.session_state[key]
     st.rerun()
-
 
 # Function to handle document removal
 def remove_document(file_to_remove):
     """Remove a document and update the FAISS index."""
-    # Get the current files and remove the selected file
     uploaded_files_list = st.session_state.uploaded_documents
     uploaded_files_list = [file for file in uploaded_files_list if file.name != file_to_remove.name]
     
-    # Rebuild the FAISS index with the remaining files
     docs = []
     for f in uploaded_files_list:
         if f.type == "application/pdf":
@@ -105,48 +112,49 @@ def remove_document(file_to_remove):
         else:
             docs.extend(process_text_file(f))  # Process TXT file and add chunks
     
-    # Rebuild the FAISS index with the remaining documents
     embeddings = OpenAIEmbeddings()
     faiss_index = FAISS.from_texts(docs, embeddings)
     
-    # Store the updated FAISS index and files
     st.session_state.uploaded_files = faiss_index
-    st.session_state.uploaded_documents = uploaded_files_list  # Update the documents list
+    st.session_state.uploaded_documents = uploaded_files_list
     st.session_state.uploaded_file_count = len(uploaded_files_list)
 
-# If new files are uploaded or the file count has changed
+# Display file uploader only if mode is 'Chat with uploaded documents'
+if st.session_state.chat_mode == "Chat with uploaded documents":
+    st.sidebar.header("📄 Upload Documents")
+    uploaded_files = st.sidebar.file_uploader(
+        "Upload PDFs or TXT files", type=["pdf", "txt"],
+        accept_multiple_files=True, key="file_uploader"
+    )
+else:
+    uploaded_files = None  # Prevent uploads in chat-only mode
+
+# If new files are uploaded or file count changes
 if uploaded_files and (st.session_state.uploaded_files is None or len(uploaded_files) != st.session_state.uploaded_file_count):
     with st.spinner("Processing documents..."):
         docs = []
-        # Process new documents and append them to the existing docs list
         for f in uploaded_files:
             if f.type == "application/pdf":
-                docs.extend(process_pdf(f))  # Process PDF and add chunks
+                docs.extend(process_pdf(f))
             else:
-                docs.extend(process_text_file(f))  # Process TXT and add chunks
-        
-        # Ensure docs contains only strings (check each chunk is a string)
+                docs.extend(process_text_file(f))
+
         docs = [str(doc) for doc in docs]
 
-        # If there's an existing FAISS index, append new documents to it
         if st.session_state.uploaded_files:
-            # Get existing documents stored in session state
             existing_docs = st.session_state.uploaded_documents
-            docs.extend(existing_docs)  # Append old docs to the new ones
+            docs.extend(existing_docs)
         
-        # Rebuild FAISS index with the updated list of documents
         embeddings = OpenAIEmbeddings()
         faiss_index = FAISS.from_texts(docs, embeddings)
         
-        # Store the new FAISS index and documents
         st.session_state.uploaded_files = faiss_index
-        st.session_state.uploaded_documents = uploaded_files  # Store the document files in session state
+        st.session_state.uploaded_documents = uploaded_files
         st.session_state.uploaded_file_count = len(uploaded_files)
 
     st.success(f"Successfully indexed {len(docs)} document chunks.")
-            
 
-# Displaying conversation history
+# Display conversation history
 for message in st.session_state.memory.chat_memory.messages:
     if isinstance(message, HumanMessage):
         st.chat_message("user").markdown(message.content)
@@ -154,7 +162,6 @@ for message in st.session_state.memory.chat_memory.messages:
         st.chat_message("assistant").markdown(message.content)
 
 if st.session_state.model_confirmed:
-    
     query = st.chat_input("Ask a question:")
 
     if query:
@@ -169,13 +176,10 @@ if st.session_state.model_confirmed:
                 st.chat_message("assistant").write(response)
 
             else:
-                # If no file is uploaded, use the LLM directly
                 system_message = SystemMessage(content=SYSTEM_PROMPT)
                 user_message = HumanMessage(content=query)
                 
-                # Retrieve full past conversation
                 messages = st.session_state.memory.chat_memory.messages
-                
                 response = llm.invoke(
                     messages + [system_message, user_message]) 
                 st.session_state.memory.chat_memory.add_ai_message(response.content)
@@ -189,16 +193,12 @@ if st.session_state.model_confirmed:
 else:
     st.warning("Confirm model settings before asking questions.")
 
-
-
-
-
+# Function to save conversation as CSV
 def save_conversation_csv():
     output = StringIO()
     writer = csv.writer(output)
     writer.writerow(["Role", "Message"])
 
-    # Extract messages from memory
     for msg in st.session_state.memory.chat_memory.messages:
         if isinstance(msg, HumanMessage):
             writer.writerow(["User", msg.content])
