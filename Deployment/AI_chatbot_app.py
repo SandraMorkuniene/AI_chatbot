@@ -99,6 +99,9 @@ if "uploaded_file_count" not in st.session_state:
     st.session_state.uploaded_file_count = 0
 if "user_input" not in st.session_state:
     st.session_state.user_input = ""
+if "all_doc_chunks" not in st.session_state:
+    st.session_state.all_doc_chunks = []
+
 	
 if st.sidebar.button("🆕 Start New Session"):
     for key in st.session_state.keys():
@@ -139,29 +142,28 @@ else:
     uploaded_files = None  # Prevent uploads in chat-only mode
 
 # If new files are uploaded or file count changes
-if uploaded_files and (st.session_state.uploaded_files is None or len(uploaded_files) != st.session_state.uploaded_file_count):
+if uploaded_files and (
+    st.session_state.uploaded_files is None or len(uploaded_files) != st.session_state.uploaded_file_count
+):
     with st.spinner("Processing documents..."):
-        docs = []
+        new_chunks = []
         for f in uploaded_files:
             if f.type == "application/pdf":
-                docs.extend(process_pdf(f))
+                new_chunks.extend(process_pdf(f))
             else:
-                docs.extend(process_text_file(f))
+                new_chunks.extend(process_text_file(f))
 
-        docs = [str(doc) for doc in docs]
+        st.session_state.all_doc_chunks.extend(new_chunks)  # ✅ Keep all text chunks
+        st.session_state.uploaded_documents.extend(uploaded_files)  # Keep track of uploaded files
+        st.session_state.uploaded_file_count = len(st.session_state.uploaded_documents)
 
-        if st.session_state.uploaded_files:
-            existing_docs = st.session_state.uploaded_documents
-            docs.extend(existing_docs)
-        
+        # Now embed all text chunks
         embeddings = OpenAIEmbeddings()
-        faiss_index = FAISS.from_texts(docs, embeddings)
-        
+        faiss_index = FAISS.from_texts(st.session_state.all_doc_chunks, embeddings)
         st.session_state.uploaded_files = faiss_index
-        st.session_state.uploaded_documents = uploaded_files
-        st.session_state.uploaded_file_count = len(uploaded_files)
 
-    st.success(f"Successfully indexed {len(docs)} document chunks.")
+    st.success(f"Successfully indexed {len(st.session_state.all_doc_chunks)} document chunks.")
+
 	
 if uploaded_files and len(uploaded_files) > 0:
     for uploaded_file in uploaded_files:
