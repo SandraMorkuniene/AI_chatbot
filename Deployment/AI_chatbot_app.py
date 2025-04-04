@@ -14,7 +14,15 @@ import re
 from io import StringIO
 
 
-st.title("🤖 AI Chatbot - Ask Me Anything!")
+if st.sidebar.button("🆕 Start New Session"):
+    # Clear all session state and rerun fresh
+    for key in st.session_state.keys():
+        del st.session_state[key]
+    st.rerun()  # Restart the app
+
+# Upload
+st.sidebar.header("📄 Upload Documents")
+uploaded_files = st.sidebar.file_uploader("Upload PDFs or TXT files", type=["pdf", "txt"], accept_multiple_files=True)
 
 st.sidebar.header("⚙️ Model Settings")
 st.session_state.model_choice = st.sidebar.selectbox("Choose Model", ["gpt-3.5-turbo", "gpt-4"], index=0)
