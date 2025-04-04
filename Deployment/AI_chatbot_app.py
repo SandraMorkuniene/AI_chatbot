@@ -141,35 +141,39 @@ if st.session_state.chat_mode == "Chat with uploaded documents":
 else:
     uploaded_files = None  # Prevent uploads in chat-only mode
 
-# If new files are uploaded or file count changes
-if uploaded_files and (
-    st.session_state.uploaded_files is None or len(uploaded_files) != st.session_state.uploaded_file_count
-):
-    with st.spinner("Processing documents..."):
-        new_chunks = []
-        for f in uploaded_files:
-            if f.type == "application/pdf":
-                new_chunks.extend(process_pdf(f))
-            else:
-                new_chunks.extend(process_text_file(f))
 
-        st.session_state.all_doc_chunks.extend(new_chunks)  # ✅ Keep all text chunks
-        st.session_state.uploaded_documents.extend(uploaded_files)  # Keep track of uploaded files
-        st.session_state.uploaded_file_count = len(st.session_state.uploaded_documents)
+# --- Detect file changes and update memory + FAISS ---
+def file_key(file):
+    return (file.name, file.size)
 
-        # Now embed all text chunks
-        embeddings = OpenAIEmbeddings()
-        faiss_index = FAISS.from_texts(st.session_state.all_doc_chunks, embeddings)
-        st.session_state.uploaded_files = faiss_index
+uploaded_now = [file_key(f) for f in uploaded_files] if uploaded_files else []
+stored_before = [file_key(f) for f in st.session_state.get("uploaded_documents", [])]
 
-    st.success(f"Successfully indexed {len(st.session_state.all_doc_chunks)} document chunks.")
+# If the file list has changed (added or removed)
+if uploaded_now != stored_before:
+    st.session_state.uploaded_documents = uploaded_files or []
+    st.session_state.uploaded_file_count = len(uploaded_files or [])
 
-	
-if uploaded_files and len(uploaded_files) > 0:
-    for uploaded_file in uploaded_files:
-        if st.button(f"Remove {uploaded_file.name}"):
-            remove_document(uploaded_file)
-            st.success(f"Removed {uploaded_file.name} and updated the index.")
+    if uploaded_files:
+        with st.spinner("Rebuilding document index..."):
+            all_chunks = []
+            for f in uploaded_files:
+                if f.type == "application/pdf":
+                    all_chunks.extend(process_pdf(f))
+                else:
+                    all_chunks.extend(process_text_file(f))
+
+            all_chunks = [str(c) for c in all_chunks]
+            embeddings = OpenAIEmbeddings()
+            faiss_index = FAISS.from_texts(all_chunks, embeddings)
+
+            st.session_state.uploaded_files = faiss_index
+            st.success(f"Updated index with {len(all_chunks)} chunks.")
+    else:
+        # No files uploaded anymore — clear FAISS index
+        st.session_state.uploaded_files = None
+        st.info("All documents removed. Index cleared.")
+
 		
 # Display conversation history
 for message in st.session_state.memory.chat_memory.messages:
