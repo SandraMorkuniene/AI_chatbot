@@ -17,6 +17,8 @@ if "mode_locked" not in st.session_state:
     st.session_state.mode_locked = False
 if "chat_mode" not in st.session_state:
     st.session_state.chat_mode = None
+if "model_confirmed" not in st.session_state:
+    st.session_state.model_confirmed = False  # Initialize model_confirmed if not present
 
 if "mode_locked" not in st.session_state or not st.session_state.mode_locked:
     st.sidebar.header("🧭 Choose Interaction Mode")
@@ -96,8 +98,6 @@ if "uploaded_documents" not in st.session_state:
     st.session_state.uploaded_documents = []  # Store documents separately    
 if "uploaded_file_count" not in st.session_state:
     st.session_state.uploaded_file_count = 0
-if "model_confirmed" not in st.session_state:
-    st.session_state.model_confirmed = False
 if "user_input" not in st.session_state:
     st.session_state.user_input = ""
 	
