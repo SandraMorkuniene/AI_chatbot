@@ -180,7 +180,7 @@ if st.session_state.mode_locked and st.session_state.model_confirmed:
                 )
                 response = qa_chain.run(query)
 		st.session_state.memory.chat_memory.add_ai_message(response)
-                st.chat_message("assistant").write(response)
+		st.chat_message("assistant").write(response)
 
             else:
                 system_message = SystemMessage(content=SYSTEM_PROMPT)
