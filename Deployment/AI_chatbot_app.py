@@ -167,7 +167,7 @@ for message in st.session_state.memory.chat_memory.messages:
     elif isinstance(message, AIMessage):
         st.chat_message("assistant").markdown(message.content)
 
-if st.session_state.model_confirmed:
+if st.session_state.mode_locked and st.session_state.model_confirmed:
     query = st.chat_input("Ask a question:")
 
     if query:
