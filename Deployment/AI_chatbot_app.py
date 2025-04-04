@@ -17,12 +17,7 @@ if "mode_locked" not in st.session_state:
     st.session_state.mode_locked = False
 if "chat_mode" not in st.session_state:
     st.session_state.chat_mode = None
-if "model_confirmed" not in st.session_state:
-    st.session_state.model_confirmed = False
-if "uploaded_files" not in st.session_state:
-    st.session_state.uploaded_files = None
 
-# Handle mode selection (Chat without docs or Chat with docs)
 if not st.session_state.mode_locked:
     st.sidebar.header("🧭 Choose Interaction Mode")
     mode_choice = st.sidebar.radio("Select mode for this session:", ["Chat without documents", "Chat with uploaded documents"])
@@ -34,9 +29,9 @@ if not st.session_state.mode_locked:
 else:
     st.sidebar.success(f"Mode: {st.session_state.chat_mode} (locked)")
 
-# Display model settings section
+# Initialize model settings
 st.title("🤖 AI Chatbot - Ask Me Anything!")
-
+	
 st.sidebar.header("⚙️ Model Settings")
 st.session_state.model_choice = st.sidebar.selectbox("Choose Model", ["gpt-3.5-turbo", "gpt-4"], index=0)
 st.session_state.model_creativity = st.sidebar.slider("Model Creativity (Temperature)", 0.0, 1.0, 0.7, 0.1)
@@ -45,7 +40,7 @@ st.session_state.response_length_words = st.sidebar.slider("Response Length (Wor
 if st.sidebar.button("Confirm Model Settings"):
     st.session_state.model_confirmed = True
     st.success("Model settings confirmed.")
-
+	
 # Initialize LLM
 SYSTEM_PROMPT = "You are a helpful and safe AI assistant. You must refuse to engage in harmful, unethical, or biased discussions."
 llm = ChatOpenAI(
@@ -88,12 +83,21 @@ def process_text_file(uploaded_file):
 
 if "conversation_history" not in st.session_state:
     st.session_state.conversation_history = []
+if "uploaded_files" not in st.session_state:
+    st.session_state.uploaded_files = None
 if "uploaded_documents" not in st.session_state:
     st.session_state.uploaded_documents = []  # Store documents separately    
 if "uploaded_file_count" not in st.session_state:
     st.session_state.uploaded_file_count = 0
+if "model_confirmed" not in st.session_state:
+    st.session_state.model_confirmed = False
 if "user_input" not in st.session_state:
     st.session_state.user_input = ""
+	
+if st.sidebar.button("🆕 Start New Session"):
+    for key in st.session_state.keys():
+        del st.session_state[key]
+    st.rerun()
 
 # Function to handle document removal
 def remove_document(file_to_remove):
@@ -125,36 +129,53 @@ if st.session_state.chat_mode == "Chat with uploaded documents":
 else:
     uploaded_files = None  # Prevent uploads in chat-only mode
 
-# Check conditions for allowing conversation in "Chat with uploaded documents"
-if st.session_state.chat_mode == "Chat with uploaded documents":
-    # Only allow chatting if mode is locked, model is confirmed, and documents are uploaded
-    if not st.session_state.mode_locked or not st.session_state.model_confirmed or not uploaded_files:
-        st.warning("⚠️ Please complete the following steps to chat:")
-        st.info("1. Lock in the mode (Chat with uploaded documents).\n2. Confirm your model settings.\n3. Upload documents.")
-    else:
-        query = st.chat_input("Ask a question:")
-        if query:
-            if is_input_safe(query):
+# If new files are uploaded or file count changes
+if uploaded_files and (st.session_state.uploaded_files is None or len(uploaded_files) != st.session_state.uploaded_file_count):
+    with st.spinner("Processing documents..."):
+        docs = []
+        for f in uploaded_files:
+            if f.type == "application/pdf":
+                docs.extend(process_pdf(f))
+            else:
+                docs.extend(process_text_file(f))
+
+        docs = [str(doc) for doc in docs]
+
+        if st.session_state.uploaded_files:
+            existing_docs = st.session_state.uploaded_documents
+            docs.extend(existing_docs)
+        
+        embeddings = OpenAIEmbeddings()
+        faiss_index = FAISS.from_texts(docs, embeddings)
+        
+        st.session_state.uploaded_files = faiss_index
+        st.session_state.uploaded_documents = uploaded_files
+        st.session_state.uploaded_file_count = len(uploaded_files)
+
+    st.success(f"Successfully indexed {len(docs)} document chunks.")
+
+# Display conversation history
+for message in st.session_state.memory.chat_memory.messages:
+    if isinstance(message, HumanMessage):
+        st.chat_message("user").markdown(message.content)
+    elif isinstance(message, AIMessage):
+        st.chat_message("assistant").markdown(message.content)
+
+if st.session_state.model_confirmed:
+    query = st.chat_input("Ask a question:")
+
+    if query:
+        if is_input_safe(query):
+            if st.session_state.uploaded_files:
                 retriever = st.session_state.uploaded_files.as_retriever(search_kwargs={"k": 2})
+                
                 qa_chain = ConversationalRetrievalChain.from_llm(
                     llm=llm, retriever=retriever, memory=st.session_state.memory
                 )
                 response = qa_chain.run(query)
                 st.chat_message("assistant").write(response)
-            else:
-                warning = "⚠️ Your query violates content policies."
-                st.session_state.memory.chat_memory.add_ai_message(warning)
-                st.chat_message("assistant").write(warning)
 
-# For "Chat without documents", user must lock the mode and confirm model settings to chat
-elif st.session_state.chat_mode == "Chat without documents":
-    if not st.session_state.mode_locked or not st.session_state.model_confirmed:
-        st.warning("⚠️ Please complete the following steps to chat:")
-        st.info("1. Lock in the mode (Chat without documents).\n2. Confirm your model settings.")
-    else:
-        query = st.chat_input("Ask a question:")
-        if query:
-            if is_input_safe(query):
+            else:
                 system_message = SystemMessage(content=SYSTEM_PROMPT)
                 user_message = HumanMessage(content=query)
                 
@@ -163,10 +184,14 @@ elif st.session_state.chat_mode == "Chat without documents":
                     messages + [system_message, user_message]) 
                 st.session_state.memory.chat_memory.add_ai_message(response.content)
                 st.chat_message("assistant").write(response.content)
-            else:
-                warning = "⚠️ Your query violates content policies."
-                st.session_state.memory.chat_memory.add_ai_message(warning)
-                st.chat_message("assistant").write(warning)
+
+        else:
+            warning = "⚠️ Your query violates content policies."
+            st.session_state.memory.chat_memory.add_ai_message(warning)
+            st.chat_message("assistant").write(warning)
+
+else:
+    st.warning("Confirm model settings before asking questions.")
 
 # Function to save conversation as CSV
 def save_conversation_csv():
@@ -184,4 +209,3 @@ def save_conversation_csv():
 
 st.sidebar.header("💾 Download Conversation")
 st.sidebar.download_button("Download CSV", save_conversation_csv(), "conversation.csv", "text/csv")
-
