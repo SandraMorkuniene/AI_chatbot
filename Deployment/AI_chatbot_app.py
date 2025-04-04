@@ -108,8 +108,7 @@ if st.sidebar.button("🆕 Start New Session"):
 # Function to handle document removal
 def remove_document(file_to_remove):
     """Remove a document and update the FAISS index."""
-    uploaded_files_list = st.session_state.uploaded_documents
-    uploaded_files_list = [file for file in uploaded_files_list if file.name != file_to_remove.name]
+    uploaded_files_list = [file for file in st.session_state.uploaded_documents if file.name != file_to_remove.name]
     
     docs = []
     for f in uploaded_files_list:
@@ -117,13 +116,17 @@ def remove_document(file_to_remove):
             docs.extend(process_pdf(f))  # Process PDF file and add chunks
         else:
             docs.extend(process_text_file(f))  # Process TXT file and add chunks
-    
-    embeddings = OpenAIEmbeddings()
-    faiss_index = FAISS.from_texts(docs, embeddings)
-    
-    st.session_state.uploaded_files = faiss_index
+
+    if docs:  # ✅ Only create FAISS index if there is something to index
+        embeddings = OpenAIEmbeddings()
+        faiss_index = FAISS.from_texts(docs, embeddings)
+        st.session_state.uploaded_files = faiss_index
+    else:
+        st.session_state.uploaded_files = None  # No files left, clear the index
+
     st.session_state.uploaded_documents = uploaded_files_list
     st.session_state.uploaded_file_count = len(uploaded_files_list)
+
 
 # Display file uploader only if mode is 'Chat with uploaded documents'
 if st.session_state.chat_mode == "Chat with uploaded documents":
