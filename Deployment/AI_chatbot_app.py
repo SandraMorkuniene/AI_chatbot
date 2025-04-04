@@ -173,21 +173,21 @@ if st.session_state.mode_locked and st.session_state.model_confirmed:
     if query:
         if is_input_safe(query):
             if st.session_state.uploaded_files:
-		    retriever = st.session_state.uploaded_files.as_retriever(search_kwargs={"k": 2})
-		    qa_chain = ConversationalRetrievalChain.from_llm(llm=llm, retriever=retriever, memory=st.session_state.memory.chat_memory)
-		    response = qa_chain.run(query)
-		    st.session_state.memory.chat_memory.add_ai_message(response)
-		    st.chat_message("assistant").write(response)
-		    
-
-
+                retriever = st.session_state.uploaded_files.as_retriever(search_kwargs={"k": 2})
+                qa_chain = ConversationalRetrievalChain.from_llm(
+                    llm=llm, retriever=retriever, memory=st.session_state.memory.chat_memory
+                )
+                response = qa_chain.run(query)
+                st.session_state.memory.chat_memory.add_ai_message(response)
+                st.chat_message("assistant").write(response)
             else:
                 system_message = SystemMessage(content=SYSTEM_PROMPT)
                 user_message = HumanMessage(content=query)
                 
                 messages = st.session_state.memory.chat_memory.messages
                 response = llm.invoke(
-                    messages + [system_message, user_message]) 
+                    messages + [system_message, user_message]
+                ) 
                 st.session_state.memory.chat_memory.add_ai_message(response.content)
                 st.chat_message("assistant").write(response.content)
 
@@ -198,6 +198,7 @@ if st.session_state.mode_locked and st.session_state.model_confirmed:
 
 else:
     st.warning("Lock the mode and confirm model settings before asking questions.")
+
 
 # Function to save conversation as CSV
 def save_conversation_csv():
