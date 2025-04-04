@@ -16,6 +16,15 @@ from io import StringIO
 
 st.title("🤖 AI Chatbot - Ask Me Anything!")
 
+st.sidebar.header("⚙️ Model Settings")
+st.session_state.model_choice = st.sidebar.selectbox("Choose Model", ["gpt-3.5-turbo", "gpt-4"], index=0)
+st.session_state.model_creativity = st.sidebar.slider("Model Creativity (Temperature)", 0.0, 1.0, 0.7, 0.1)
+st.session_state.response_length_words = st.sidebar.slider("Response Length (Words)", 50, 500, 150, 10)
+
+if st.sidebar.button("Confirm Model Settings"):
+    st.session_state.model_confirmed = True
+    st.success("Model settings confirmed.")
+    
 # Initialize LLM
 SYSTEM_PROMPT = "You are a helpful and safe AI assistant. You must refuse to engage in harmful, unethical, or biased discussions."
 llm = ChatOpenAI(
@@ -132,14 +141,6 @@ if uploaded_files and (st.session_state.uploaded_files is None or len(uploaded_f
 
     st.success(f"Successfully indexed {len(docs)} document chunks.")
             
-st.sidebar.header("⚙️ Model Settings")
-st.session_state.model_choice = st.sidebar.selectbox("Choose Model", ["gpt-3.5-turbo", "gpt-4"], index=0)
-st.session_state.model_creativity = st.sidebar.slider("Model Creativity (Temperature)", 0.0, 1.0, 0.7, 0.1)
-st.session_state.response_length_words = st.sidebar.slider("Response Length (Words)", 50, 500, 150, 10)
-
-if st.sidebar.button("Confirm Model Settings"):
-    st.session_state.model_confirmed = True
-    st.success("Model settings confirmed.")
 
 # Displaying conversation history
 for message in st.session_state.memory.chat_memory.messages:
