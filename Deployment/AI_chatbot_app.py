@@ -18,7 +18,7 @@ if "mode_locked" not in st.session_state:
 if "chat_mode" not in st.session_state:
     st.session_state.chat_mode = None
 
-if not st.session_state.mode_locked:
+if "mode_locked" not in st.session_state or not st.session_state.mode_locked:
     st.sidebar.header("🧭 Choose Interaction Mode")
     mode_choice = st.sidebar.radio("Select mode for this session:", ["Chat without documents", "Chat with uploaded documents"])
 
@@ -40,6 +40,13 @@ st.session_state.response_length_words = st.sidebar.slider("Response Length (Wor
 if st.sidebar.button("Confirm Model Settings"):
     st.session_state.model_confirmed = True
     st.success("Model settings confirmed.")
+	
+# Ensure mode and model are confirmed before chatting
+if st.session_state.chat_mode == "Chat without documents" and not st.session_state.mode_locked:
+    st.warning("You need to lock in the mode before chatting.")
+
+elif not st.session_state.model_confirmed:
+    st.warning("Please confirm the model settings before chatting.")	
 	
 # Initialize LLM
 SYSTEM_PROMPT = "You are a helpful and safe AI assistant. You must refuse to engage in harmful, unethical, or biased discussions."
