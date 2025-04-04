@@ -159,7 +159,13 @@ if uploaded_files and (st.session_state.uploaded_files is None or len(uploaded_f
         st.session_state.uploaded_file_count = len(uploaded_files)
 
     st.success(f"Successfully indexed {len(docs)} document chunks.")
-
+	
+if uploaded_files and len(uploaded_files) > 0:
+    for uploaded_file in uploaded_files:
+        if st.button(f"Remove {uploaded_file.name}"):
+            remove_document(uploaded_file)
+            st.success(f"Removed {uploaded_file.name} and updated the index.")
+		
 # Display conversation history
 for message in st.session_state.memory.chat_memory.messages:
     if isinstance(message, HumanMessage):
